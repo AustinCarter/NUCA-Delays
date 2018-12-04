@@ -121,7 +121,7 @@ int Nuca::calc_cycles(double lat, double oper_freq)
 
 int Nuca::calc_alt(double lat, double oper_freq)
 {
-  double cycle_time = (1.0 / (oper_freq * 1e9));
+  // double cycle_time = (1.0 / (oper_freq * 1e9));
 
   return (int)ceil(lat / oper_freq);
 }
@@ -181,6 +181,7 @@ void Nuca::sim_nuca()
   double opt_acclat = INF; //, opt_avg_lat = INF, opt_tot_lat = INF;
   int opt_rows = 0;
   int opt_columns = 0;
+  int *opt_delays, *currentDelays;
   //  double opt_totno_hops = 0;
   double opt_avg_hop = 0;
   double opt_dyn_power = 0, opt_leakage_power = 0;
@@ -304,6 +305,8 @@ void Nuca::sim_nuca()
             c++;
           r = bank_count / c;
 
+          currentDelays = (int *)malloc(r * c * sizeof(int));
+
           /*
            * to find the avg access latency of a NUCA cache, uncontended
            * access time to each bank from the
@@ -330,7 +333,9 @@ void Nuca::sim_nuca()
               curr_acclat = (i * ver_hop_lat + CONTR_2_BANK_LAT +
                              j * hor_hop_lat);
 
-              printf("%d  ", calc_alt(curr_acclat, 1 / (nuca_list.back()->nuca_pda.cycle_time * .001)));
+              int temp = calc_alt(curr_acclat, 1 / (nuca_list.back()->nuca_pda.cycle_time * .001));
+              printf("%d  ", temp);
+              currentDelays[i * c + j] = temp;
               //printf("%f  ", curr_acclat);
               tot_lat += curr_acclat;
               totno_hops += curr_hop;
@@ -377,6 +382,7 @@ void Nuca::sim_nuca()
             opt_columns = c;
             opt_dyn_power = avg_dyn_power;
             opt_leakage_power = avg_leakage_power;
+            opt_delays = currentDelays;
           }
           totno_hops = 0;
           tot_lat = 0;
@@ -428,6 +434,7 @@ void Nuca::sim_nuca()
         nuca_list.back()->bank_count = bank_count;
         nuca_list.back()->rows = opt_rows;
         nuca_list.back()->columns = opt_columns;
+        nuca_list.back()->delays = opt_delays;
         calculate_nuca_area(nuca_list.back());
 
         minval.update_min_values(nuca_list.back());
@@ -528,6 +535,15 @@ void Nuca::print_nuca(nuca_org_t *fr)
   printf("\n\n");
   fr->v_wire->print_wire();
   printf("\n\nBank stats:\n");
+
+  for (int i = 0; i < fr->rows; i++)
+  {
+    for (int j = 0; j < fr->columns; j++)
+    {
+      printf("%d ", fr->delays[i * fr->columns + j]);
+    }
+    printf("\n");
+  }
 }
 
 nuca_org_t *

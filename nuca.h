@@ -66,6 +66,7 @@ public:
   int rows;
   int columns;
   int bank_count;
+  int *delays;
 };
 
 class Nuca : public Component
